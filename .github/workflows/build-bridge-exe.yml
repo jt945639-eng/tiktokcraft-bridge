@@ -7,8 +7,8 @@ on:
       - 'bridge-gui/**'
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build-windows:
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -24,7 +24,35 @@ jobs:
         working-directory: bridge-gui
         run: npx @yao-pkg/pkg . --targets node18-win-x64 --output dist/TikTokCraft-Bridge.exe
 
+      - name: Ocultar la ventana de consola
+        working-directory: bridge-gui
+        run: npx rcedit dist/TikTokCraft-Bridge.exe --set-subsystem windows
+
       - uses: actions/upload-artifact@v4
         with:
           name: TikTokCraft-Bridge-exe
           path: bridge-gui/dist/TikTokCraft-Bridge.exe
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Instalar dependencias
+        working-directory: bridge-gui
+        run: npm install
+
+      - name: Compilar binario (Linux, sin necesitar Node.js instalado)
+        working-directory: bridge-gui
+        run: |
+          npx @yao-pkg/pkg . --targets node18-linux-x64 --output dist/TikTokCraft-Bridge-linux
+          chmod +x dist/TikTokCraft-Bridge-linux
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TikTokCraft-Bridge-linux
+          path: bridge-gui/dist/TikTokCraft-Bridge-linux
