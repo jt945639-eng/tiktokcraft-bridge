@@ -1,0 +1,27 @@
+{
+  "name": "tiktokcraft-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build:win": "pkg . --targets node18-win-x64 --output dist/TikTokCraft-Bridge.exe"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "rcon-client": "^4.2.5",
+    "tiktok-live-connector": "^2.4.4"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^5.16.1"
+  },
+  "pkg": {
+    "assets": [
+      "public/**/*"
+    ],
+    "targets": [
+      "node18-win-x64"
+    ],
+    "outputPath": "dist"
+  }
+}
