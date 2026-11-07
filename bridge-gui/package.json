@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "main": "server.js",
+  "bin": "server.js",
   "scripts": {
     "start": "node server.js",
     "build:win": "pkg . --targets node18-win-x64 --output dist/TikTokCraft-Bridge.exe"
