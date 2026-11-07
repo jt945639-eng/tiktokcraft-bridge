@@ -1,8 +1,16 @@
 // Núcleo del puente TikTok LIVE -> Minecraft (RCON), controlable desde la interfaz web.
 const fs = require('fs');
 const path = require('path');
-const { TikTokLiveConnection, WebcastEvent, ControlEvent } = require('tiktok-live-connector');
 const { Rcon } = require('rcon-client');
+// tiktok-live-connector es un paquete ESM puro; desde CommonJS hay que
+// cargarlo con import() dinámico en vez de require().
+let _tiktokLib = null;
+async function getTikTokLib() {
+  if (!_tiktokLib) {
+    _tiktokLib = await import('tiktok-live-connector');
+  }
+  return _tiktokLib;
+}
 
 const isPkg = typeof process.pkg !== 'undefined';
 const BASE_DIR = isPkg ? path.dirname(process.execPath) : __dirname;
@@ -112,7 +120,7 @@ async function send(cfg, log, command) {
   }
 }
 
-function startBridge(log) {
+async function startBridge(log) {
   if (state.running) {
     log('Ya está en marcha.');
     return;
@@ -130,6 +138,8 @@ function startBridge(log) {
 
   state.running = true;
   state.reconnectingTikTok = false;
+
+  const { TikTokLiveConnection, WebcastEvent, ControlEvent } = await getTikTokLib();
 
   const connection = new TikTokLiveConnection(cfg.tiktokUsername, {
     signApiKey: cfg.signApiKey,
