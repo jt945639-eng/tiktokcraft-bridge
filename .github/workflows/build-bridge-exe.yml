@@ -1,0 +1,30 @@
+name: Build TikTokCraft Bridge .exe
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'bridge-gui/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Instalar dependencias
+        working-directory: bridge-gui
+        run: npm install
+
+      - name: Compilar .exe (Windows, sin necesitar Node.js instalado)
+        working-directory: bridge-gui
+        run: npx @yao-pkg/pkg . --targets node18-win-x64 --output dist/TikTokCraft-Bridge.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TikTokCraft-Bridge-exe
+          path: bridge-gui/dist/TikTokCraft-Bridge.exe
