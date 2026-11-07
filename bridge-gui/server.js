@@ -14,7 +14,13 @@ app.get('/', (req, res) => {
 const logs = [];
 function log(msg) {
   const line = `[${new Date().toLocaleTimeString()}] ${msg}`;
-  console.log(line);
+  // Sin consola visible, escribir en stdout puede fallar; lo ignoramos
+  // porque el registro ya se ve en la ventana web.
+  try {
+    console.log(line);
+  } catch (e) {
+    /* sin consola, no pasa nada */
+  }
   logs.push(line);
   if (logs.length > 300) logs.shift();
 }
