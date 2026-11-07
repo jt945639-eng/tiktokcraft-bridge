@@ -1,5 +1,21 @@
+const { exec, spawn } = require('child_process');
+
+// Al abrir el .exe por doble clic, Windows crea una ventana de consola negra.
+// Para que no se vea: si todavía no somos la copia "oculta", nos relanzamos
+// a nosotros mismos en segundo plano (sin ventana) y esta primera ventana
+// se cierra de inmediato.
+if (process.platform === 'win32' && !process.env.TIKTOKCRAFT_BRIDGE_HIDDEN) {
+  const child = spawn(process.execPath, [], {
+    detached: true,
+    stdio: 'ignore',
+    windowsHide: true,
+    env: { ...process.env, TIKTOKCRAFT_BRIDGE_HIDDEN: '1' },
+  });
+  child.unref();
+  process.exit(0);
+}
+
 const express = require('express');
-const { exec } = require('child_process');
 const core = require('./bridgeCore');
 const PAGE_HTML = require('./ui');
 
@@ -58,6 +74,12 @@ app.post('/api/stop', (req, res) => {
 
 app.get('/api/status', (req, res) => {
   res.json({ running: core.isRunning(), logs });
+});
+
+app.post('/api/quit', (req, res) => {
+  res.json({ ok: true });
+  core.stopBridge(log);
+  setTimeout(() => process.exit(0), 300);
 });
 
 function openAppWindow(url) {

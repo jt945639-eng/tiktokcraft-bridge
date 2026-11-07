@@ -82,6 +82,13 @@ module.exports = `<!doctype html>
     <label style="margin-top:0">Registro</label>
     <div class="log" id="log"></div>
   </div>
+
+  <div class="card">
+    <div class="btns">
+      <button id="quit" style="background:#7a1f1f;color:#ffe3e3;">⏻ Cerrar programa</button>
+    </div>
+    <div class="hint">El programa corre en segundo plano sin ventana. Usa este botón para apagarlo del todo.</div>
+  </div>
 </div>
 
 <script>
@@ -114,6 +121,12 @@ $('save').onclick = async () => {
 
 $('start').onclick = async () => { await fetch('/api/start', { method: 'POST' }); refresh(); };
 $('stop').onclick = async () => { await fetch('/api/stop', { method: 'POST' }); refresh(); };
+
+$('quit').onclick = async () => {
+  if (!confirm('¿Cerrar el programa por completo?')) return;
+  await fetch('/api/quit', { method: 'POST' });
+  document.body.innerHTML = '<div style="padding:40px;text-align:center;color:#8a93a6;font-family:sans-serif;">Programa cerrado. Puedes cerrar esta ventana.</div>';
+};
 
 async function refresh() {
   const r = await fetch('/api/status');
