@@ -14,7 +14,8 @@
     "tiktok-live-connector": "^2.4.4"
   },
   "devDependencies": {
-    "@yao-pkg/pkg": "^5.16.1"
+    "@yao-pkg/pkg": "^5.16.1",
+    "rcedit": "^4.0.1"
   },
   "pkg": {
     "assets": [
