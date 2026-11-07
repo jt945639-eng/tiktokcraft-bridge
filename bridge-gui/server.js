@@ -54,13 +54,29 @@ app.get('/api/status', (req, res) => {
   res.json({ running: core.isRunning(), logs });
 });
 
+function openAppWindow(url) {
+  if (process.platform === 'win32') {
+    // Abre como "ventana de aplicación" (sin pestañas ni barra de direcciones)
+    // usando Edge, que viene instalado por defecto en Windows.
+    const edgeCmd = `start "" msedge --app="${url}" --window-size=700,840`;
+    exec(edgeCmd, (err) => {
+      if (err) {
+        const chromeCmd = `start "" chrome --app="${url}" --window-size=700,840`;
+        exec(chromeCmd, (err2) => {
+          if (err2) exec(`start "" "${url}"`, () => {});
+        });
+      }
+    });
+  } else if (process.platform === 'darwin') {
+    exec(`open -na "Google Chrome" --args --app="${url}" --window-size=700,840`, (err) => {
+      if (err) exec(`open "${url}"`, () => {});
+    });
+  } else {
+    exec(`google-chrome --app="${url}" --window-size=700,840 || xdg-open "${url}"`, () => {});
+  }
+}
+
 app.listen(PORT, () => {
   log(`Servidor local iniciado en http://localhost:${PORT}`);
-  const url = `http://localhost:${PORT}`;
-  const cmd = process.platform === 'win32'
-    ? `start "" "${url}"`
-    : process.platform === 'darwin'
-      ? `open "${url}"`
-      : `xdg-open "${url}"`;
-  exec(cmd, () => {});
+  openAppWindow(`http://localhost:${PORT}`);
 });
