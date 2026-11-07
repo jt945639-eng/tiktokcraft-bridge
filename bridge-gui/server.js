@@ -105,15 +105,24 @@ function openAppWindow(url) {
     exec(`open -na "Google Chrome" --args --app="${url}" --window-size=700,840`, (err) => {
       if (err) exec(`open "${url}"`, () => {});
     });
+  } else {
+    // Linux: probamos varios navegadores tipo Chrome/Chromium en modo "app"
+    // (ventana propia, sin pestañas ni barra de direcciones). Si no hay
+    // ninguno instalado, NO abrimos el navegador normal por defecto; solo
+    // avisamos para que se instale uno o se entre manualmente.
+    const candidatos = ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser', 'microsoft-edge'];
+    const cmd = candidatos
+      .map((bin) => `command -v ${bin} >/dev/null 2>&1 && ${bin} --app="${url}" --window-size=700,840`)
+      .join(' || ');
+    exec(cmd, (err) => {
+      if (err) {
+        log('No se encontró Chrome/Chromium para abrir la ventana. Instala uno (por ejemplo: sudo apt install chromium) o entra manualmente a ' + url);
+      }
+    });
   }
-  // En Linux no se abre ningún navegador: normalmente corre en un servidor
-  // sin escritorio. La interfaz sigue disponible en http://localhost:4578
-  // por si se quiere abrir manualmente (por ejemplo con un túnel SSH).
 }
 
 app.listen(PORT, () => {
   log(`Servidor local iniciado en http://localhost:${PORT}`);
-  if (process.platform !== 'linux') {
-    openAppWindow(`http://localhost:${PORT}`);
-  }
+  openAppWindow(`http://localhost:${PORT}`);
 });
