@@ -24,10 +24,6 @@ jobs:
         working-directory: bridge-gui
         run: npx @yao-pkg/pkg . --targets node18-win-x64 --output dist/TikTokCraft-Bridge.exe
 
-      - name: Ocultar la ventana de consola
-        working-directory: bridge-gui
-        run: npx rcedit dist/TikTokCraft-Bridge.exe --set-subsystem windows
-
       - uses: actions/upload-artifact@v4
         with:
           name: TikTokCraft-Bridge-exe
