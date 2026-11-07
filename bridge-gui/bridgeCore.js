@@ -139,78 +139,103 @@ async function startBridge(log) {
   state.running = true;
   state.reconnectingTikTok = false;
 
-  const { TikTokLiveConnection, WebcastEvent, ControlEvent } = await getTikTokLib();
+  try {
+    const { TikTokLiveConnection, WebcastEvent, ControlEvent } = await getTikTokLib();
 
-  const connection = new TikTokLiveConnection(cfg.tiktokUsername, {
-    signApiKey: cfg.signApiKey,
-  });
-  state.connection = connection;
+    const connection = new TikTokLiveConnection(cfg.tiktokUsername, {
+      signApiKey: cfg.signApiKey,
+    });
+    state.connection = connection;
 
-  function connectTikTok() {
-    if (!state.running) return;
-    state.reconnectingTikTok = false;
-    connection
-      .connect()
-      .then((info) => log(`Conectado al LIVE de @${cfg.tiktokUsername} (sala ${info.roomId})`))
-      .catch((err) => {
-        log('No se pudo conectar (¿estás en LIVE? ¿signApiKey correcto?): ' + (err.message || err));
-        scheduleReconnect(10000);
-      });
+    function connectTikTok() {
+      if (!state.running) return;
+      state.reconnectingTikTok = false;
+      connection
+        .connect()
+        .then((info) => log(`Conectado al LIVE de @${cfg.tiktokUsername} (sala ${info.roomId})`))
+        .catch((err) => {
+          log('No se pudo conectar (¿estás en LIVE? ¿signApiKey correcto?): ' + (err?.message || err));
+          scheduleReconnect(10000);
+        });
+    }
+
+    function scheduleReconnect(ms) {
+      if (!state.running || state.reconnectingTikTok) return;
+      state.reconnectingTikTok = true;
+      state.reconnectTimer = setTimeout(connectTikTok, ms);
+    }
+
+    connection.on(WebcastEvent.GIFT, (d) => {
+      try {
+        const giftType = d.giftDetails?.giftType;
+        const giftName = d.giftDetails?.giftName || 'Regalo';
+        if (giftType === 1 && !d.repeatEnd) return;
+        const count = d.repeatCount || 1;
+        const user = getUserName(d);
+        log(`🎁 ${user}: ${giftName} x${count}`);
+        send(cfg, log, `tiktokcraft gift ${slug(giftName)} ${count} ${slug(user)}`);
+      } catch (e) {
+        log('Error procesando regalo: ' + e.message);
+      }
+    });
+
+    connection.on(WebcastEvent.LIKE, (d) => {
+      try {
+        send(cfg, log, `tiktokcraft like ${d?.likeCount || 1}`);
+      } catch (e) {
+        log('Error procesando like: ' + e.message);
+      }
+    });
+
+    connection.on(WebcastEvent.CHAT, (d) => {
+      try {
+        const prefix = '!';
+        const texto = d.comment || '';
+        if (!texto.startsWith(prefix)) return;
+        const palabra = texto.slice(prefix.length).trim().split(/\s+/)[0];
+        if (!palabra) return;
+        const user = getUserName(d);
+        log(`💬 ${user}: ${texto}`);
+        send(cfg, log, `tiktokcraft chat ${palabra} ${slug(user)}`);
+      } catch (e) {
+        log('Error procesando chat: ' + e.message);
+      }
+    });
+
+    connection.on(WebcastEvent.FOLLOW, (d) => {
+      try {
+        const user = getUserName(d);
+        log(`➕ ${user} te sigue`);
+        send(cfg, log, `tiktokcraft follow ${slug(user)}`);
+      } catch (e) {
+        log('Error procesando follow: ' + e.message);
+      }
+    });
+
+    connection.on(WebcastEvent.SHARE, (d) => {
+      try {
+        const user = getUserName(d);
+        log(`🔁 ${user} compartió el LIVE`);
+        send(cfg, log, `tiktokcraft share ${slug(user)}`);
+      } catch (e) {
+        log('Error procesando share: ' + e.message);
+      }
+    });
+
+    connection.on(ControlEvent.DISCONNECTED, () => {
+      if (!state.running) return;
+      log('Desconectado de TikTok, reintentando en 5 s...');
+      scheduleReconnect(5000);
+    });
+
+    connection.on(WebcastEvent.STREAM_END, () => log('El LIVE terminó.'));
+
+    log('Iniciando...');
+    connectTikTok();
+  } catch (e) {
+    log('No se pudo iniciar: ' + (e?.message || e));
+    state.running = false;
   }
-
-  function scheduleReconnect(ms) {
-    if (!state.running || state.reconnectingTikTok) return;
-    state.reconnectingTikTok = true;
-    state.reconnectTimer = setTimeout(connectTikTok, ms);
-  }
-
-  connection.on(WebcastEvent.GIFT, (d) => {
-    const giftType = d.giftDetails?.giftType;
-    const giftName = d.giftDetails?.giftName || 'Regalo';
-    if (giftType === 1 && !d.repeatEnd) return;
-    const count = d.repeatCount || 1;
-    const user = getUserName(d);
-    log(`🎁 ${user}: ${giftName} x${count}`);
-    send(cfg, log, `tiktokcraft gift ${slug(giftName)} ${count} ${slug(user)}`);
-  });
-
-  connection.on(WebcastEvent.LIKE, (d) => {
-    send(cfg, log, `tiktokcraft like ${d.likeCount || 1}`);
-  });
-
-  connection.on(WebcastEvent.CHAT, (d) => {
-    const prefix = '!';
-    const texto = d.comment || '';
-    if (!texto.startsWith(prefix)) return;
-    const palabra = texto.slice(prefix.length).trim().split(/\s+/)[0];
-    if (!palabra) return;
-    const user = getUserName(d);
-    log(`💬 ${user}: ${texto}`);
-    send(cfg, log, `tiktokcraft chat ${palabra} ${slug(user)}`);
-  });
-
-  connection.on(WebcastEvent.FOLLOW, (d) => {
-    const user = getUserName(d);
-    log(`➕ ${user} te sigue`);
-    send(cfg, log, `tiktokcraft follow ${slug(user)}`);
-  });
-
-  connection.on(WebcastEvent.SHARE, (d) => {
-    const user = getUserName(d);
-    log(`🔁 ${user} compartió el LIVE`);
-    send(cfg, log, `tiktokcraft share ${slug(user)}`);
-  });
-
-  connection.on(ControlEvent.DISCONNECTED, () => {
-    if (!state.running) return;
-    log('Desconectado de TikTok, reintentando en 5 s...');
-    scheduleReconnect(5000);
-  });
-
-  connection.on(WebcastEvent.STREAM_END, () => log('El LIVE terminó.'));
-
-  log('Iniciando...');
-  connectTikTok();
 }
 
 function stopBridge(log) {

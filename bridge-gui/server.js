@@ -44,6 +44,10 @@ function log(msg) {
 core.ensureConfigFile();
 log('Interfaz lista. config.json en: ' + core.CONFIG_PATH);
 
+// Red de seguridad: que ningún error deje de cerrar el programa de golpe.
+process.on('unhandledRejection', (e) => log('Error no controlado: ' + (e?.message || e)));
+process.on('uncaughtException', (e) => log('Error no controlado: ' + (e?.message || e)));
+
 app.get('/api/config', (req, res) => {
   try {
     res.json(core.readConfigForUI());
@@ -63,7 +67,9 @@ app.post('/api/config', (req, res) => {
 });
 
 app.post('/api/start', (req, res) => {
-  core.startBridge(log);
+  Promise.resolve(core.startBridge(log)).catch((e) => {
+    log('Error inesperado al iniciar: ' + (e?.message || e));
+  });
   res.json({ ok: true, running: core.isRunning() });
 });
 
@@ -99,12 +105,15 @@ function openAppWindow(url) {
     exec(`open -na "Google Chrome" --args --app="${url}" --window-size=700,840`, (err) => {
       if (err) exec(`open "${url}"`, () => {});
     });
-  } else {
-    exec(`google-chrome --app="${url}" --window-size=700,840 || xdg-open "${url}"`, () => {});
   }
+  // En Linux no se abre ningún navegador: normalmente corre en un servidor
+  // sin escritorio. La interfaz sigue disponible en http://localhost:4578
+  // por si se quiere abrir manualmente (por ejemplo con un túnel SSH).
 }
 
 app.listen(PORT, () => {
   log(`Servidor local iniciado en http://localhost:${PORT}`);
-  openAppWindow(`http://localhost:${PORT}`);
+  if (process.platform !== 'linux') {
+    openAppWindow(`http://localhost:${PORT}`);
+  }
 });
