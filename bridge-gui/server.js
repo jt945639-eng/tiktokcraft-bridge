@@ -1,12 +1,15 @@
 const express = require('express');
-const path = require('path');
 const { exec } = require('child_process');
 const core = require('./bridgeCore');
+const PAGE_HTML = require('./ui');
 
 const PORT = 4578;
 const app = express();
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/', (req, res) => {
+  res.type('html').send(PAGE_HTML);
+});
 
 const logs = [];
 function log(msg) {
